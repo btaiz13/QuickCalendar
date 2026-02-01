@@ -43,9 +43,36 @@
 
     @media (max-width:600px){
       textarea{
-        min-height:150px;
+        min-height:160px;
         font-size:22px;
       }
+    }
+
+    .actions{
+      display:flex;
+      gap:10px;
+      margin-top:10px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    button{
+      appearance:none;
+      border:0;
+      border-radius:12px;
+      padding:12px 16px;
+      font-size:16px;
+      font-weight:700;
+      cursor:pointer;
+      background:#111;
+      color:#fff;
+    }
+    button:active{ transform: translateY(1px); }
+
+    .secondary{
+      background:#e9e9e9;
+      color:#111;
+      font-weight:600;
     }
 
     .hint{
@@ -68,11 +95,16 @@
     <h1>כלי לקביעת פגישות והתראות</h1>
 
     <textarea id="line"
-      placeholder='כתוב אירוע ולחץ Enter
+      placeholder='כתוב אירוע ואז Enter או לחץ על "הוסף ליומן"
 דוגמה:
 18:00-23:00
 תוצרת הארץ ביתן 1 - אייל גולן 07.02'
       autofocus></textarea>
+
+    <div class="actions">
+      <button id="addBtn" type="button">הוסף ליומן</button>
+      <button id="clearBtn" type="button" class="secondary">נקה</button>
+    </div>
 
     <div class="hint">
       תאריך: <code>DD/MM</code> או <code>DD.MM</code> (אפשר גם שנה)<br>
@@ -82,9 +114,11 @@
   </div>
 
 <script>
-/* ===== Quick Calendar – Final ===== */
+/* ===== Quick Calendar – Final + Button ===== */
 
 const input = document.getElementById("line");
+const addBtn = document.getElementById("addBtn");
+const clearBtn = document.getElementById("clearBtn");
 
 function pad2(n){ return String(n).padStart(2,"0"); }
 
@@ -110,21 +144,17 @@ function parseDate(text){
 function parseTimeRange(text){
   let m = text.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
   if(m){
-    return {
-      sh:+m[1], sm:+m[2],
-      eh:+m[3], em:+m[4],
-      matchText:m[0], isRange:true
-    };
+    const sh=+m[1], sm=+m[2], eh=+m[3], em=+m[4];
+    if(sh<0||sh>23||sm<0||sm>59||eh<0||eh>23||em<0||em>59) return null;
+    return { sh, sm, eh, em, matchText:m[0], isRange:true };
   }
 
   m = text.match(/(\d{1,2}):(\d{2})/);
   if(!m) return null;
 
-  return {
-    sh:+m[1], sm:+m[2],
-    eh:null, em:null,
-    matchText:m[0], isRange:false
-  };
+  const sh=+m[1], sm=+m[2];
+  if(sh<0||sh>23||sm<0||sm>59) return null;
+  return { sh, sm, eh:null, em:null, matchText:m[0], isRange:false };
 }
 
 function normalizeYear(d){
@@ -145,7 +175,7 @@ function buildDates(year, d, t){
       if(end <= start) end.setDate(end.getDate()+1);
     } else {
       end = new Date(start.getTime());
-      end.setMinutes(end.getMinutes()+60);
+      end.setMinutes(end.getMinutes()+60); // ברירת מחדל 60 דק'
     }
 
     return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}T${pad2(start.getHours())}${pad2(start.getMinutes())}00`
@@ -178,20 +208,20 @@ function openCalendar(url){
   a.remove();
 }
 
-function handleEnter(){
+function addToCalendar(){
   const raw = input.value.trim();
   if(!raw) return;
 
   const d = parseDate(raw);
   if(!d){
-    alert("לא נמצא תאריך");
+    alert("לא נמצא תאריך. דוגמה: 05.02 או 2/2 14:30");
     return;
   }
 
   const t = parseTimeRange(raw);
   const year = normalizeYear(d);
   const dates = buildDates(year, d, t);
-  const title = extractTitle(raw, d.matchText, t ? t.matchText : null);
+  const title = extractTitle(raw, d.matchText, t ? t.matchText : null) || raw;
 
   const url =
     "https://calendar.google.com/calendar/render?action=TEMPLATE"
@@ -204,14 +234,26 @@ function handleEnter(){
   input.focus();
 }
 
+// Enter מוסיף (Shift+Enter שורה חדשה)
 input.addEventListener("keydown", e => {
   if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
-    handleEnter();
+    addToCalendar();
   }
 });
 
-document.body.addEventListener("click", () => input.focus());
+addBtn.addEventListener("click", addToCalendar);
+
+clearBtn.addEventListener("click", () => {
+  input.value = "";
+  input.focus();
+});
+
+document.body.addEventListener("click", (e) => {
+  // לא לגנוב קליקים מהכפתורים/השדה
+  if (e.target === addBtn || e.target === clearBtn || e.target === input) return;
+  input.focus();
+});
 </script>
 </body>
 </html>
