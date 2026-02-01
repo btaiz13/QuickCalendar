@@ -41,13 +41,6 @@
       min-height:90px;
     }
 
-    @media (max-width:600px){
-      textarea{
-        min-height:160px;
-        font-size:22px;
-      }
-    }
-
     .actions{
       display:flex;
       gap:10px;
@@ -68,12 +61,7 @@
       color:#fff;
     }
     button:active{ transform: translateY(1px); }
-
-    .secondary{
-      background:#e9e9e9;
-      color:#111;
-      font-weight:600;
-    }
+    .secondary{ background:#e9e9e9; color:#111; font-weight:600; }
 
     .hint{
       margin-top:10px;
@@ -82,10 +70,42 @@
       line-height:1.5;
     }
 
-    code{
-      background:#eee;
-      padding:2px 6px;
-      border-radius:6px;
+    code{ background:#eee; padding:2px 6px; border-radius:6px; }
+
+    /* ✅ מובייל: הכפתורים תמיד נראים */
+    @media (max-width:600px){
+      textarea{
+        min-height:170px;
+        font-size:22px;
+        /* מרווח כדי שהכפתורים הקבועים לא יכסו את הטקסט */
+        padding-bottom: 18px;
+      }
+
+      .actions{
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        margin: 0;
+        padding: 10px;
+        background: rgba(245,245,245,0.96);
+        border: 1px solid #ddd;
+        border-radius: 14px;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+        z-index: 9999;
+        justify-content: space-between;
+      }
+
+      .actions button{
+        flex: 1;
+        padding: 14px 16px;
+        font-size: 16px;
+      }
+
+      /* נותן מקום בתחתית הדף כדי שלא יסתיר את ה-hint */
+      .wrap{
+        padding-bottom: 90px; /* גובה סרגל הכפתורים בערך */
+      }
     }
   </style>
 </head>
@@ -114,7 +134,7 @@
   </div>
 
 <script>
-/* ===== Quick Calendar – Final + Button ===== */
+/* ===== Quick Calendar – Final + Mobile Sticky Buttons ===== */
 
 const input = document.getElementById("line");
 const addBtn = document.getElementById("addBtn");
@@ -175,7 +195,7 @@ function buildDates(year, d, t){
       if(end <= start) end.setDate(end.getDate()+1);
     } else {
       end = new Date(start.getTime());
-      end.setMinutes(end.getMinutes()+60); // ברירת מחדל 60 דק'
+      end.setMinutes(end.getMinutes()+60);
     }
 
     return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}T${pad2(start.getHours())}${pad2(start.getMinutes())}00`
@@ -234,7 +254,6 @@ function addToCalendar(){
   input.focus();
 }
 
-// Enter מוסיף (Shift+Enter שורה חדשה)
 input.addEventListener("keydown", e => {
   if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
@@ -246,12 +265,6 @@ addBtn.addEventListener("click", addToCalendar);
 
 clearBtn.addEventListener("click", () => {
   input.value = "";
-  input.focus();
-});
-
-document.body.addEventListener("click", (e) => {
-  // לא לגנוב קליקים מהכפתורים/השדה
-  if (e.target === addBtn || e.target === clearBtn || e.target === input) return;
   input.focus();
 });
 </script>
