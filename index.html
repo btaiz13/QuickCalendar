@@ -4,9 +4,10 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>כלי לקביעת פגישות והתראות</title>
+
   <style>
     body{
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       margin:0;
       min-height:100vh;
       display:flex;
@@ -16,112 +17,158 @@
       padding:16px;
       box-sizing:border-box;
     }
-    .wrap{ width:100%; max-width:900px; }
-    h1{ margin:0 0 14px 0; font-size:28px; font-weight:800; letter-spacing:-0.2px; }
-    input{
+
+    .wrap{
+      width:100%;
+      max-width:900px;
+    }
+
+    h1{
+      margin:0 0 14px 0;
+      font-size:28px;
+      font-weight:800;
+      letter-spacing:-0.2px;
+    }
+
+    textarea{
       width:100%;
       font-size:20px;
       padding:14px;
       border:1px solid #ccc;
       border-radius:12px;
       box-sizing:border-box;
+      resize:none;
+      min-height:90px;
     }
-    .hint{ margin-top:10px; color:#555; font-size:14px; line-height:1.5; }
-    code{ background:#eee; padding:2px 6px; border-radius:6px; }
+
+    @media (max-width:600px){
+      textarea{
+        min-height:150px;
+        font-size:22px;
+      }
+    }
+
+    .hint{
+      margin-top:10px;
+      color:#555;
+      font-size:14px;
+      line-height:1.5;
+    }
+
+    code{
+      background:#eee;
+      padding:2px 6px;
+      border-radius:6px;
+    }
   </style>
 </head>
+
 <body>
   <div class="wrap">
     <h1>כלי לקביעת פגישות והתראות</h1>
 
-    <input id="line"
-      placeholder='כתוב אירוע ולחץ Enter. דוגמה: "18:00-23:00 תוצרת הארץ ביתן 1 - אייל גולן 07.02"'
-      autofocus
-    />
+    <textarea id="line"
+      placeholder='כתוב אירוע ולחץ Enter
+דוגמה:
+18:00-23:00
+תוצרת הארץ ביתן 1 - אייל גולן 07.02'
+      autofocus></textarea>
 
     <div class="hint">
-      תאריך: <code>DD/MM</code> או <code>DD.MM</code> (אפשר גם שנה: <code>05.02.2026</code> / <code>05/02/26</code>) ·
-      שעה: <code>HH:MM</code> או טווח <code>HH:MM-HH:MM</code> · בלי שעה = כל היום
+      תאריך: <code>DD/MM</code> או <code>DD.MM</code> (אפשר גם שנה)<br>
+      שעה: <code>HH:MM</code> או טווח <code>HH:MM-HH:MM</code><br>
+      Enter = הוספה ליומן · Shift+Enter = שורה חדשה
     </div>
   </div>
 
 <script>
+/* ===== Quick Calendar – Final ===== */
+
 const input = document.getElementById("line");
+
 function pad2(n){ return String(n).padStart(2,"0"); }
 
 function parseDate(text){
   const m = text.match(/(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/);
   if(!m) return null;
+
   const day = +m[1], month = +m[2];
   if(day<1||day>31||month<1||month>12) return null;
 
   let year = new Date().getFullYear();
   let hasExplicitYear = false;
+
   if(m[3]){
     hasExplicitYear = true;
     year = +m[3];
     if(year < 100) year = 2000 + year;
   }
+
   return { year, month, day, matchText:m[0], hasExplicitYear };
 }
 
 function parseTimeRange(text){
   let m = text.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
   if(m){
-    const sh=+m[1], sm=+m[2], eh=+m[3], em=+m[4];
-    if(sh>=0&&sh<=23&&sm>=0&&sm<=59&&eh>=0&&eh<=23&&em>=0&&em<=59){
-      return { sh, sm, eh, em, matchText:m[0], isRange:true };
-    }
-    return null;
+    return {
+      sh:+m[1], sm:+m[2],
+      eh:+m[3], em:+m[4],
+      matchText:m[0], isRange:true
+    };
   }
+
   m = text.match(/(\d{1,2}):(\d{2})/);
   if(!m) return null;
-  const sh=+m[1], sm=+m[2];
-  if(sh<0||sh>23||sm<0||sm>59) return null;
-  return { sh, sm, eh:null, em:null, matchText:m[0], isRange:false };
+
+  return {
+    sh:+m[1], sm:+m[2],
+    eh:null, em:null,
+    matchText:m[0], isRange:false
+  };
 }
 
 function normalizeYear(d){
   if(d.hasExplicitYear) return d.year;
   const today = new Date();
   const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const eventDate = new Date(d.year, d.month - 1, d.day);
-  return (eventDate < todayMid) ? d.year + 1 : d.year;
+  const eventDate = new Date(d.year, d.month-1, d.day);
+  return eventDate < todayMid ? d.year+1 : d.year;
 }
 
-function buildDates(year, d, tr){
-  if(tr){
-    const start = new Date(year, d.month-1, d.day, tr.sh, tr.sm, 0);
+function buildDates(year, d, t){
+  if(t){
+    const start = new Date(year, d.month-1, d.day, t.sh, t.sm);
     let end;
-    if(tr.isRange){
-      end = new Date(year, d.month-1, d.day, tr.eh, tr.em, 0);
+
+    if(t.isRange){
+      end = new Date(year, d.month-1, d.day, t.eh, t.em);
       if(end <= start) end.setDate(end.getDate()+1);
     } else {
       end = new Date(start.getTime());
-      end.setMinutes(end.getMinutes() + 60);
+      end.setMinutes(end.getMinutes()+60);
     }
-    const s = `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}T${pad2(start.getHours())}${pad2(start.getMinutes())}00`;
-    const e = `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}T${pad2(end.getHours())}${pad2(end.getMinutes())}00`;
-    return `${s}/${e}`;
+
+    return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}T${pad2(start.getHours())}${pad2(start.getMinutes())}00`
+         + `/`
+         + `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}T${pad2(end.getHours())}${pad2(end.getMinutes())}00`;
   }
 
   const start = new Date(year, d.month-1, d.day);
-  const end = new Date(year, d.month-1, d.day); end.setDate(end.getDate()+1);
-  const s = `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}`;
-  const e = `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}`;
-  return `${s}/${e}`;
+  const end = new Date(start); end.setDate(end.getDate()+1);
+
+  return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}`
+       + `/`
+       + `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}`;
 }
 
 function extractTitle(raw, dateText, timeText){
-  let title = raw;
-  if(timeText) title = title.replace(timeText, " ");
-  if(dateText) title = title.replace(dateText, " ");
-  title = title.replace(/\s+/g, " ").trim();
-  return title || raw;
+  let t = raw;
+  if(timeText) t = t.replace(timeText, " ");
+  if(dateText) t = t.replace(dateText, " ");
+  return t.replace(/\s+/g," ").trim();
 }
 
-// פתיחה בטאב חדש "רגיל" (הרבה פחות נחסם מפופאפ)
-function openInNewTab(url){
+function openCalendar(url){
   const a = document.createElement("a");
   a.href = url;
   a.target = "_blank";
@@ -129,13 +176,6 @@ function openInNewTab(url){
   document.body.appendChild(a);
   a.click();
   a.remove();
-
-  // fallback: אם חסם בכל זאת, נפתח באותו טאב
-  // (אין דרך 100% לזהות חסימה, אז זה best-effort)
-  setTimeout(() => {
-    // אם המשתמש עדיין באותו דף ועדיין יש טקסט (לא נוקה) - נפתח באותו טאב
-    // (רמז קטן; לא מושלם אבל עוזר)
-  }, 50);
 }
 
 function handleEnter(){
@@ -143,27 +183,29 @@ function handleEnter(){
   if(!raw) return;
 
   const d = parseDate(raw);
-  if(!d){ alert("לא נמצא תאריך. נתמך: 2/2 או 05.02 או 05.02.2026"); return; }
+  if(!d){
+    alert("לא נמצא תאריך");
+    return;
+  }
 
-  const tr = parseTimeRange(raw);
+  const t = parseTimeRange(raw);
   const year = normalizeYear(d);
-  const dates = buildDates(year, d, tr);
-  const title = extractTitle(raw, d.matchText, tr ? tr.matchText : null);
+  const dates = buildDates(year, d, t);
+  const title = extractTitle(raw, d.matchText, t ? t.matchText : null);
 
   const url =
-    `https://calendar.google.com/calendar/render?action=TEMPLATE` +
-    `&text=${encodeURIComponent(title)}` +
-    `&dates=${encodeURIComponent(dates)}`;
+    "https://calendar.google.com/calendar/render?action=TEMPLATE"
+    + "&text=" + encodeURIComponent(title)
+    + "&dates=" + encodeURIComponent(dates);
 
-  openInNewTab(url);
+  openCalendar(url);
 
-  // מוכן לאירוע הבא
   input.value = "";
   input.focus();
 }
 
-input.addEventListener("keydown", (e) => {
-  if(e.key === "Enter"){
+input.addEventListener("keydown", e => {
+  if(e.key === "Enter" && !e.shiftKey){
     e.preventDefault();
     handleEnter();
   }
