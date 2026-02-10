@@ -52,23 +52,76 @@ placeholder="לדוגמה:
 </div>
 
 <script>
-function addToCalendar(){
+window.addToCalendar = function () {
+  const text = document.getElementById("eventText").value.trim();
 
-const text=document.getElementById("eventText").value;
+  if (!text) {
+    alert("לא כתבת אירוע");
+    return;
+  }
 
-if(!text){
-alert("לא כתבת אירוע");
-return;
-}
+  const dateMatch = text.match(/(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/);
+  if (!dateMatch) {
+    alert("לא נמצא תאריך. דוגמה: 05.02 או 2/2 14:30");
+    return;
+  }
 
-const dateMatch=text.match(/(\d{1,2})[\/.](\d{1,2})/);
-if(!dateMatch){
-alert("לא נמצא תאריך");
-return;
-}
+  const day = parseInt(dateMatch[1], 10);
+  const month = parseInt(dateMatch[2], 10);
 
-const timeMatch=text.match(/(\d{1,2}):(\d{2})/);
+  let year = new Date().getFullYear();
+  if (dateMatch[3]) {
+    let y = parseInt(dateMatch[3], 10);
+    if (y < 100) y = 2000 + y;
+    year = y;
+  }
 
-let year=new Date().getFullYear();
-let month=dateMatch[2];
-let day=dateMatch[1];
+  const range = text.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+  const single = text.match(/(\d{1,2}):(\d{2})/);
+
+  let start, end;
+
+  if (range) {
+    const sh = parseInt(range[1], 10), sm = parseInt(range[2], 10);
+    const eh = parseInt(range[3], 10), em = parseInt(range[4], 10);
+
+    start = new Date(year, month - 1, day, sh, sm, 0);
+    end   = new Date(year, month - 1, day, eh, em, 0);
+    if (end <= start) end.setDate(end.getDate() + 1); // אם טווח חוצה חצות
+  } else if (single) {
+    const sh = parseInt(single[1], 10), sm = parseInt(single[2], 10);
+    start = new Date(year, month - 1, day, sh, sm, 0);
+    end = new Date(start.getTime());
+    end.setMinutes(end.getMinutes() + 60); // ברירת מחדל שעה
+  } else {
+    // כל היום
+    start = new Date(year, month - 1, day, 0, 0, 0);
+    end = new Date(start.getTime());
+    end.setDate(end.getDate() + 1);
+  }
+
+  function pad2(n) { return String(n).padStart(2, "0"); }
+  function fmt(d) {
+    return d.getFullYear()
+      + pad2(d.getMonth() + 1)
+      + pad2(d.getDate())
+      + "T"
+      + pad2(d.getHours())
+      + pad2(d.getMinutes())
+      + "00";
+  }
+
+  const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+    + "&text=" + encodeURIComponent(text)
+    + "&dates=" + encodeURIComponent(fmt(start) + "/" + fmt(end));
+
+  // פתיחה אמינה בטאב חדש
+  const a = document.createElement("a");
+  a.href = url;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
+</script>
