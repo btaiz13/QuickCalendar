@@ -1,360 +1,125 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>כלי לקביעת פגישות והתראות</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כלי לקביעת פגישות והתראות</title>
 
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: linear-gradient(180deg, #f5f7fa, #ffffff);
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      direction: rtl;
-    }
+<style>
+body{
+  font-family:system-ui,sans-serif;
+  margin:0;
+  background:#f5f5f5;
+  padding:16px;
+}
 
-    .card {
-      background: #fff;
-      width: 100%;
-      max-width: 480px;
-      padding: 24px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      border-radius: 16px;
-    }
+.wrap{
+  max-width:900px;
+  margin:auto;
+}
 
-    h1 {
-      margin-top: 0;
-      margin-bottom: 16px;
-      font-size: 20px;
-      text-align: center;
-    }
+h1{
+  font-size:28px;
+  margin-bottom:14px;
+}
 
-    textarea {
-      width: 100%;
-      min-height: 140px;
-      padding: 16px;
-      font-size: 16px;
-      border-radius: 12px;
-      border: 1px solid #ddd;
-      background: #f9fafb;
-      resize: none;
-      box-sizing: border-box;
-    }
+textarea{
+  width:100%;
+  font-size:20px;
+  padding:14px;
+  border:1px solid #ccc;
+  border-radius:12px;
+  resize:none;
+  min-height:120px;
+  box-sizing:border-box;
+  background:white;
+}
 
-    textarea:focus {
-      outline: none;
-      border-color: #4285f4;
-      background: #fff;
-    }
+.actions{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
 
-    button {
-      width: 100%;
-      margin-top: 16px;
-      padding: 14px;
-      font-size: 16px;
-      border: none;
-      border-radius: 12px;
-      background: #4285f4;
-      color: white;
-      cursor: pointer;
-    }
+button{
+  border:0;
+  border-radius:12px;
+  padding:12px 16px;
+  font-size:16px;
+  font-weight:bold;
+  cursor:pointer;
+  background:#111;
+  color:#fff;
+}
 
-    button:active {
-      transform: scale(0.98);
-    }
+.secondary{
+  background:#e9e9e9;
+  color:#111;
+}
 
-    .hint {
-      margin-top: 12px;
-      font-size: 13px;
-      color: #666;
-      text-align: center;
-    }
-  </style>
+.hint{
+  margin-top:10px;
+  color:#555;
+  font-size:14px;
+}
+
+/* מובייל */
+@media(max-width:600px){
+
+.wrap{
+  padding-bottom:90px;
+}
+
+.actions{
+  position:fixed;
+  bottom:12px;
+  left:12px;
+  right:12px;
+  background:#f5f5f5;
+  padding:10px;
+  border-radius:14px;
+  border:1px solid #ddd;
+}
+
+textarea{
+  min-height:180px;
+  font-size:22px;
+}
+
+.actions button{
+  flex:1;
+}
+}
+</style>
 </head>
 
 <body>
-  <div class="card">
-    <h1>כלי לקביעת פגישות והתראות</h1>
 
-    <textarea
-      id="input"
-      placeholder="לדוגמה:
-18:00-23:00 תוצרת הארץ ביתן 1 - אייל גולן 07.02
-או:
-פגישה עם יוסי 2/2 14:30"
-    ></textarea>
+<div class="wrap">
 
-    <button onclick="openCalendar()">פתח ביומן</button>
+<h1>כלי לקביעת פגישות והתראות</h1>
 
-    <div class="hint">Enter או לחיצה על הכפתור יפתחו את Google Calendar</div>
-  </div>
+<textarea id="line"
+placeholder="כתוב אירוע ואז Enter או לחץ הוסף ליומן
+לדוגמה:
+18:00-23:00 תוצרת הארץ ביתן 1 - אייל גולן 07.02"></textarea>
 
-  <script>
-    const input = document.getElementById("input");
+<div class="actions">
+<button id="addBtn">הוסף ליומן</button>
+<button id="clearBtn" class="secondary">נקה</button>
+</div>
 
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        openCalendar();
-      }
-    });
+<div class="hint">
+תאריך: DD/MM או DD.MM  
+שעה: HH:MM או HH:MM-HH:MM  
+Enter = הוספה ליומן
+</div>
 
-    function openCalendar() {
-      const text = input.value.trim();
-      if (!text) return;
-
-      const encodedText = encodeURIComponent(text);
-
-      // פתיחה של יצירת אירוע + קפיצה לתאריך אם יש
-      const url =
-        "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" +
-        encodedText;
-
-      window.open(url, "_blank");
-
-      input.value = "";
-    }
-  </script>
-</body>
-</html>      border:1px solid #ccc;
-      border-radius:12px;
-      box-sizing:border-box;
-      resize:none;
-      min-height:90px;
-    }
-
-    .actions{
-      display:flex;
-      gap:10px;
-      margin-top:10px;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    button{
-      appearance:none;
-      border:0;
-      border-radius:12px;
-      padding:12px 16px;
-      font-size:16px;
-      font-weight:700;
-      cursor:pointer;
-      background:#111;
-      color:#fff;
-    }
-    button:active{ transform: translateY(1px); }
-    .secondary{ background:#e9e9e9; color:#111; font-weight:600; }
-
-    .hint{
-      margin-top:10px;
-      color:#555;
-      font-size:14px;
-      line-height:1.5;
-    }
-
-    code{ background:#eee; padding:2px 6px; border-radius:6px; }
-
-    /* ✅ מובייל: הכפתורים תמיד נראים */
-    @media (max-width:600px){
-      textarea{
-        min-height:170px;
-        font-size:22px;
-        /* מרווח כדי שהכפתורים הקבועים לא יכסו את הטקסט */
-        padding-bottom: 18px;
-      }
-
-      .actions{
-        position: fixed;
-        left: 12px;
-        right: 12px;
-        bottom: 12px;
-        margin: 0;
-        padding: 10px;
-        background: rgba(245,245,245,0.96);
-        border: 1px solid #ddd;
-        border-radius: 14px;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-        z-index: 9999;
-        justify-content: space-between;
-      }
-
-      .actions button{
-        flex: 1;
-        padding: 14px 16px;
-        font-size: 16px;
-      }
-
-      /* נותן מקום בתחתית הדף כדי שלא יסתיר את ה-hint */
-      .wrap{
-        padding-bottom: 90px; /* גובה סרגל הכפתורים בערך */
-      }
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrap">
-    <h1>כלי לקביעת פגישות והתראות</h1>
-
-    <textarea id="line"
-      placeholder='כתוב אירוע ואז Enter או לחץ על "הוסף ליומן"
-דוגמה:
-18:00-23:00
-תוצרת הארץ ביתן 1 - אייל גולן 07.02'
-      autofocus></textarea>
-
-    <div class="actions">
-      <button id="addBtn" type="button">הוסף ליומן</button>
-      <button id="clearBtn" type="button" class="secondary">נקה</button>
-    </div>
-
-    <div class="hint">
-      תאריך: <code>DD/MM</code> או <code>DD.MM</code> (אפשר גם שנה)<br>
-      שעה: <code>HH:MM</code> או טווח <code>HH:MM-HH:MM</code><br>
-      Enter = הוספה ליומן · Shift+Enter = שורה חדשה
-    </div>
-  </div>
+</div>
 
 <script>
-/* ===== Quick Calendar – Final + Mobile Sticky Buttons ===== */
+const input=document.getElementById("line");
 
-const input = document.getElementById("line");
-const addBtn = document.getElementById("addBtn");
-const clearBtn = document.getElementById("clearBtn");
+function pad(n){return String(n).padStart(2,"0");}
 
-function pad2(n){ return String(n).padStart(2,"0"); }
-
-function parseDate(text){
-  const m = text.match(/(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/);
-  if(!m) return null;
-
-  const day = +m[1], month = +m[2];
-  if(day<1||day>31||month<1||month>12) return null;
-
-  let year = new Date().getFullYear();
-  let hasExplicitYear = false;
-
-  if(m[3]){
-    hasExplicitYear = true;
-    year = +m[3];
-    if(year < 100) year = 2000 + year;
-  }
-
-  return { year, month, day, matchText:m[0], hasExplicitYear };
-}
-
-function parseTimeRange(text){
-  let m = text.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-  if(m){
-    const sh=+m[1], sm=+m[2], eh=+m[3], em=+m[4];
-    if(sh<0||sh>23||sm<0||sm>59||eh<0||eh>23||em<0||em>59) return null;
-    return { sh, sm, eh, em, matchText:m[0], isRange:true };
-  }
-
-  m = text.match(/(\d{1,2}):(\d{2})/);
-  if(!m) return null;
-
-  const sh=+m[1], sm=+m[2];
-  if(sh<0||sh>23||sm<0||sm>59) return null;
-  return { sh, sm, eh:null, em:null, matchText:m[0], isRange:false };
-}
-
-function normalizeYear(d){
-  if(d.hasExplicitYear) return d.year;
-  const today = new Date();
-  const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const eventDate = new Date(d.year, d.month-1, d.day);
-  return eventDate < todayMid ? d.year+1 : d.year;
-}
-
-function buildDates(year, d, t){
-  if(t){
-    const start = new Date(year, d.month-1, d.day, t.sh, t.sm);
-    let end;
-
-    if(t.isRange){
-      end = new Date(year, d.month-1, d.day, t.eh, t.em);
-      if(end <= start) end.setDate(end.getDate()+1);
-    } else {
-      end = new Date(start.getTime());
-      end.setMinutes(end.getMinutes()+60);
-    }
-
-    return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}T${pad2(start.getHours())}${pad2(start.getMinutes())}00`
-         + `/`
-         + `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}T${pad2(end.getHours())}${pad2(end.getMinutes())}00`;
-  }
-
-  const start = new Date(year, d.month-1, d.day);
-  const end = new Date(start); end.setDate(end.getDate()+1);
-
-  return `${start.getFullYear()}${pad2(start.getMonth()+1)}${pad2(start.getDate())}`
-       + `/`
-       + `${end.getFullYear()}${pad2(end.getMonth()+1)}${pad2(end.getDate())}`;
-}
-
-function extractTitle(raw, dateText, timeText){
-  let t = raw;
-  if(timeText) t = t.replace(timeText, " ");
-  if(dateText) t = t.replace(dateText, " ");
-  return t.replace(/\s+/g," ").trim();
-}
-
-function openCalendar(url){
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-function addToCalendar(){
-  const raw = input.value.trim();
-  if(!raw) return;
-
-  const d = parseDate(raw);
-  if(!d){
-    alert("לא נמצא תאריך. דוגמה: 05.02 או 2/2 14:30");
-    return;
-  }
-
-  const t = parseTimeRange(raw);
-  const year = normalizeYear(d);
-  const dates = buildDates(year, d, t);
-  const title = extractTitle(raw, d.matchText, t ? t.matchText : null) || raw;
-
-  const url =
-    "https://calendar.google.com/calendar/render?action=TEMPLATE"
-    + "&text=" + encodeURIComponent(title)
-    + "&dates=" + encodeURIComponent(dates);
-
-  openCalendar(url);
-
-  input.value = "";
-  input.focus();
-}
-
-input.addEventListener("keydown", e => {
-  if(e.key === "Enter" && !e.shiftKey){
-    e.preventDefault();
-    addToCalendar();
-  }
-});
-
-addBtn.addEventListener("click", addToCalendar);
-
-clearBtn.addEventListener("click", () => {
-  input.value = "";
-  input.focus();
-});
-</script>
-</body>
-</html>
-
-
+function parse
