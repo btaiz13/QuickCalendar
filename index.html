@@ -1,127 +1,304 @@
 <!doctype html>
 <html lang="he" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>כלי לקביעת פגישות</title>
-
-<style>
-body{
-  font-family:system-ui,sans-serif;
-  margin:0;
-  background:#f5f5f5;
-  padding:16px;
-}
-
-.wrap{
-  max-width:700px;
-  margin:auto;
-}
-
-textarea{
-  width:100%;
-  padding:14px;
-  font-size:18px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  min-height:120px;
-}
-
-button{
-  padding:12px 20px;
-  border:0;
-  border-radius:10px;
-  background:#111;
-  color:white;
-  margin-top:10px;
-  cursor:pointer;
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QuickCalendar – עוזר שיבוץ</title>
+  <style>
+    body { font-family: system-ui, Arial; margin: 16px; line-height: 1.35; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 14px; max-width: 720px; margin: 0 auto; }
+    label { display:block; margin-top: 10px; font-weight: 600; }
+    textarea, input, select, button { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 10px; border-radius: 10px; border: 1px solid #ccc; }
+    button { cursor: pointer; font-weight: 700; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .muted { color: #666; font-size: 13px; margin-top: 6px; }
+    .out { margin-top: 12px; padding: 10px; background: #f7f7f7; border-radius: 10px; white-space: pre-wrap; }
+    .slots { margin-top: 10px; display: grid; gap: 8px; }
+    .slotBtn { text-align: right; background: #fff; }
+    .danger { background: #ffecec; border: 1px solid #ffb3b3; }
+    .ok { background: #ecfff1; border: 1px solid #b3ffd0; }
+    .small { font-size: 13px; }
+    .hr { height:1px; background:#eee; margin: 14px 0; }
+  </style>
 </head>
-
 <body>
+  <div class="card">
+    <h2 style="margin:0 0 6px 0;">QuickCalendar – שיבוץ חכם</h2>
+    <div class="muted">
+      כתוב משימה + תאריך + שעה (למשל: "פגישה עם דני 23.4 16:00") או רק משימה ותאריך ואז נאתר חלון פנוי.
+    </div>
 
-<div class="wrap">
-<h2>כלי לקביעת פגישות</h2>
+    <label for="eventText">טקסט</label>
+    <textarea id="eventText" rows="3" placeholder='דוגמה: "פסטיבל סופי 23.4 16:00" או "להרים טלפון לרואה חשבון 23.4"'></textarea>
 
-<textarea id="eventText"
-placeholder="לדוגמה:
-פגישה עם יוסי 2/2 14:30"></textarea>
+    <div class="row">
+      <div>
+        <label for="durationPreset">משך זמן</label>
+        <select id="durationPreset">
+          <option value="45">45 דקות</option>
+          <option value="90">1:30 שעות</option>
+          <option value="150">2:30 שעות</option>
+          <option value="custom">מותאם</option>
+        </select>
+      </div>
+      <div>
+        <label for="durationCustom">משך מותאם (דקות)</label>
+        <input id="durationCustom" type="number" min="5" step="5" placeholder="לדוגמה: 60" disabled />
+      </div>
+    </div>
 
-<button onclick="addToCalendar()">הוסף ליומן</button>
-</div>
+    <div class="row" style="margin-top:10px;">
+      <button id="findSlotBtn">מצא לי זמן פנוי</button>
+      <button id="addNowBtn">הוסף לפי שעה שבטקסט</button>
+    </div>
+
+    <div class="muted small">
+      * “מצא לי זמן פנוי” משתמש באירועים שכבר שמורים באפליקציה (localStorage).  
+      * “הוסף לפי שעה שבטקסט” יוסיף אירוע בדיוק בשעה שכתבת.
+    </div>
+
+    <div id="out" class="out" style="display:none;"></div>
+    <div id="slots" class="slots"></div>
+
+    <div class="hr"></div>
+
+    <button id="clearBtn" class="danger">נקה את כל האירועים ששמורים באפליקציה</button>
+    <div class="muted small" id="stats"></div>
+  </div>
 
 <script>
-window.addToCalendar = function () {
-  const text = document.getElementById("eventText").value.trim();
+(function () {
+  const STORAGE_KEY = "qc_events_v1";
 
-  if (!text) {
-    alert("לא כתבת אירוע");
-    return;
+  const elText = document.getElementById("eventText");
+  const elPreset = document.getElementById("durationPreset");
+  const elCustom = document.getElementById("durationCustom");
+  const elOut = document.getElementById("out");
+  const elSlots = document.getElementById("slots");
+  const elStats = document.getElementById("stats");
+
+  document.getElementById("findSlotBtn").addEventListener("click", onFindSlot);
+  document.getElementById("addNowBtn").addEventListener("click", onAddNow);
+  document.getElementById("clearBtn").addEventListener("click", onClear);
+
+  elPreset.addEventListener("change", () => {
+    const isCustom = elPreset.value === "custom";
+    elCustom.disabled = !isCustom;
+    if (!isCustom) elCustom.value = "";
+  });
+
+  refreshStats();
+
+  function show(msg, kind="") {
+    elOut.style.display = "block";
+    elOut.className = "out " + kind;
+    elOut.textContent = msg;
   }
 
-  const dateMatch = text.match(/(\d{1,2})[\/.](\d{1,2})(?:[\/.](\d{2,4}))?/);
-  if (!dateMatch) {
-    alert("לא נמצא תאריך. דוגמה: 05.02 או 2/2 14:30");
-    return;
+  function clearSuggestions() {
+    elSlots.innerHTML = "";
   }
 
-  const day = parseInt(dateMatch[1], 10);
-  const month = parseInt(dateMatch[2], 10);
-
-  let year = new Date().getFullYear();
-  if (dateMatch[3]) {
-    let y = parseInt(dateMatch[3], 10);
-    if (y < 100) y = 2000 + y;
-    year = y;
+  function getDurationMinutes() {
+    if (elPreset.value !== "custom") return Number(elPreset.value);
+    const v = Number(elCustom.value);
+    if (!v || v < 5) return null;
+    return v;
   }
 
-  const range = text.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
-  const single = text.match(/(\d{1,2}):(\d{2})/);
-
-  let start, end;
-
-  if (range) {
-    const sh = parseInt(range[1], 10), sm = parseInt(range[2], 10);
-    const eh = parseInt(range[3], 10), em = parseInt(range[4], 10);
-
-    start = new Date(year, month - 1, day, sh, sm, 0);
-    end   = new Date(year, month - 1, day, eh, em, 0);
-    if (end <= start) end.setDate(end.getDate() + 1); // אם טווח חוצה חצות
-  } else if (single) {
-    const sh = parseInt(single[1], 10), sm = parseInt(single[2], 10);
-    start = new Date(year, month - 1, day, sh, sm, 0);
-    end = new Date(start.getTime());
-    end.setMinutes(end.getMinutes() + 60); // ברירת מחדל שעה
-  } else {
-    // כל היום
-    start = new Date(year, month - 1, day, 0, 0, 0);
-    end = new Date(start.getTime());
-    end.setDate(end.getDate() + 1);
+  function loadEvents() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
   }
 
-  function pad2(n) { return String(n).padStart(2, "0"); }
-  function fmt(d) {
-    return d.getFullYear()
-      + pad2(d.getMonth() + 1)
-      + pad2(d.getDate())
-      + "T"
-      + pad2(d.getHours())
-      + pad2(d.getMinutes())
-      + "00";
+  function saveEvents(events) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
   }
 
-  const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
-    + "&text=" + encodeURIComponent(text)
-    + "&dates=" + encodeURIComponent(fmt(start) + "/" + fmt(end));
+  function refreshStats() {
+    const events = loadEvents();
+    elStats.textContent = `אירועים שמורים באפליקציה: ${events.length}`;
+  }
 
-  // פתיחה אמינה בטאב חדש
-  const a = document.createElement("a");
-  a.href = url;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
+  function onClear() {
+    localStorage.removeItem(STORAGE_KEY);
+    clearSuggestions();
+    show("נמחקו כל האירועים מהאפליקציה.", "danger");
+    refreshStats();
+  }
+
+  // --- Parsing ---
+  // Accept: 23.4 or 23/4 or 23-4
+  function parseDateFromText(text) {
+    const m = text.match(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})(?:\s*[\/.\-]\s*(\d{2,4}))?/);
+    if (!m) return null;
+
+    const day = Number(m[1]);
+    const month = Number(m[2]);
+    let year = m[3] ? Number(m[3]) : (new Date()).getFullYear();
+    if (year < 100) year += 2000;
+
+    if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+    const d = new Date(year, month - 1, day, 0, 0, 0, 0);
+    // Basic sanity check
+    if (d.getMonth() !== month - 1 || d.getDate() !== day) return null;
+    return d;
+  }
+
+  // Accept: 16:00
+  function parseTimeFromText(text) {
+    const m = text.match(/(\d{1,2}):(\d{2})/);
+    if (!m) return null;
+    const hh = Number(m[1]);
+    const mm = Number(m[2]);
+    if (hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return { hh, mm };
+  }
+
+  function stripDateTime(text) {
+    return text
+      .replace(/(\d{1,2})\s*[\/.\-]\s*(\d{1,2})(?:\s*[\/.\-]\s*(\d{2,4}))?/g, "")
+      .replace(/(\d{1,2}):(\d{2})/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  // --- Availability search ---
+  // Working hours: 08:00-22:00
+  function dayBounds(date) {
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 8, 0, 0, 0);
+    const end   = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 22, 0, 0, 0);
+    return { start, end };
+  }
+
+  function overlaps(aStart, aEnd, bStart, bEnd) {
+    return aStart < bEnd && bStart < aEnd;
+  }
+
+  function findFreeSlots(date, durationMin, maxSuggestions=3) {
+    const events = loadEvents()
+      .map(e => ({ ...e, start: new Date(e.start), end: new Date(e.end) }))
+      .filter(e => e.start.toDateString() === date.toDateString())
+      .sort((a,b) => a.start - b.start);
+
+    const { start: dayStart, end: dayEnd } = dayBounds(date);
+    const durMs = durationMin * 60 * 1000;
+
+    // Build busy intervals clipped to day bounds
+    const busy = [];
+    for (const e of events) {
+      const s = new Date(Math.max(e.start.getTime(), dayStart.getTime()));
+      const t = new Date(Math.min(e.end.getTime(), dayEnd.getTime()));
+      if (s < t) busy.push([s, t]);
+    }
+
+    // Merge overlaps
+    busy.sort((a,b) => a[0]-b[0]);
+    const merged = [];
+    for (const [s,e] of busy) {
+      const last = merged[merged.length-1];
+      if (!last || last[1] < s) merged.push([s,e]);
+      else last[1] = new Date(Math.max(last[1].getTime(), e.getTime()));
+    }
+
+    const slots = [];
+    let cursor = dayStart;
+
+    for (const [bs, be] of merged) {
+      if (cursor < bs) {
+        const gap = bs.getTime() - cursor.getTime();
+        if (gap >= durMs) slots.push([new Date(cursor), new Date(cursor.getTime() + durMs)]);
+      }
+      cursor = new Date(Math.max(cursor.getTime(), be.getTime()));
+      if (slots.length >= maxSuggestions) break;
+    }
+
+    if (slots.length < maxSuggestions && cursor < dayEnd) {
+      const gap = dayEnd.getTime() - cursor.getTime();
+      if (gap >= durMs) slots.push([new Date(cursor), new Date(cursor.getTime() + durMs)]);
+    }
+
+    return slots.slice(0, maxSuggestions);
+  }
+
+  function fmt2(n){ return String(n).padStart(2,"0"); }
+  function fmtDate(d){ return `${d.getDate()}.${d.getMonth()+1}.${d.getFullYear()}`; }
+  function fmtTime(d){ return `${fmt2(d.getHours())}:${fmt2(d.getMinutes())}`; }
+
+  function addEvent(title, start, end) {
+    const events = loadEvents();
+    events.push({ id: crypto.randomUUID?.() || String(Date.now()), title, start: start.toISOString(), end: end.toISOString() });
+    saveEvents(events);
+    refreshStats();
+  }
+
+  // --- Actions ---
+  function onFindSlot() {
+    clearSuggestions();
+    const text = elText.value.trim();
+    if (!text) return show("לא כתבת טקסט.", "danger");
+
+    const durationMin = getDurationMinutes();
+    if (!durationMin) return show("בחר משך זמן תקין (או הכנס דקות מותאמות).", "danger");
+
+    const date = parseDateFromText(text) || new Date(); // אם אין תאריך – היום
+    const title = stripDateTime(text) || "משימה";
+
+    const slots = findFreeSlots(date, durationMin, 3);
+    if (!slots.length) {
+      return show(`לא מצאתי חלון פנוי בתאריך ${fmtDate(date)} למשך ${durationMin} דקות בין 08:00 ל-22:00.`, "danger");
+    }
+
+    show(`מצאתי חלונות פנויים ל-"${title}" בתאריך ${fmtDate(date)} (משך: ${durationMin} דק׳). בחר אחד לשיבוץ:`, "ok");
+
+    for (const [s,e] of slots) {
+      const btn = document.createElement("button");
+      btn.className = "slotBtn";
+      btn.textContent = `שבץ: ${fmtTime(s)}–${fmtTime(e)} (${fmtDate(s)})`;
+      btn.addEventListener("click", () => {
+        addEvent(title, s, e);
+        clearSuggestions();
+        show(`שובץ "${title}" בתאריך ${fmtDate(s)} בשעה ${fmtTime(s)}–${fmtTime(e)}.`, "ok");
+      });
+      elSlots.appendChild(btn);
+    }
+  }
+
+  function onAddNow() {
+    clearSuggestions();
+    const text = elText.value.trim();
+    if (!text) return show("לא כתבת טקסט.", "danger");
+
+    const durationMin = getDurationMinutes();
+    if (!durationMin) return show("בחר משך זמן תקין (או הכנס דקות מותאמות).", "danger");
+
+    const date = parseDateFromText(text);
+    if (!date) return show("כדי להוסיף לפי שעה שבטקסט חייבים תאריך (למשל 23.4).", "danger");
+
+    const tm = parseTimeFromText(text);
+    if (!tm) return show("כדי להוסיף לפי שעה שבטקסט חייבים שעה (למשל 16:00).", "danger");
+
+    const title = stripDateTime(text) || "אירוע";
+    const start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), tm.hh, tm.mm, 0, 0);
+    const end = new Date(start.getTime() + durationMin * 60 * 1000);
+
+    // התנגשויות
+    const events = loadEvents().map(e => ({...e, start:new Date(e.start), end:new Date(e.end)}));
+    const conflict = events.some(e => overlaps(start, end, e.start, e.end));
+    if (conflict) {
+      return show("יש התנגשות עם אירוע קיים באפליקציה. נסה 'מצא לי זמן פנוי'.", "danger");
+    }
+
+    addEvent(title, start, end);
+    show(`נוסף: "${title}" ב-${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)}.`, "ok");
+  }
+})();
 </script>
+</body>
+</html>
