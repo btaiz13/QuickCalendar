@@ -296,8 +296,22 @@
     }
 
     addEvent(title, start, end);
-    show(`נוסף: "${title}" ב-${fmtDate(start)} ${fmtTime(start)}–${fmtTime(end)}.`, "ok");
-  }
+
+function fmtGoogle(d) {
+  return d.getFullYear()
+    + fmt2(d.getMonth() + 1)
+    + fmt2(d.getDate())
+    + "T"
+    + fmt2(d.getHours())
+    + fmt2(d.getMinutes())
+    + "00";
+}
+
+const url = "https://calendar.google.com/calendar/render?action=TEMPLATE"
+  + "&text=" + encodeURIComponent(title)
+  + "&dates=" + encodeURIComponent(fmtGoogle(start) + "/" + fmtGoogle(end));
+
+window.location.href = url;  }
 })();
 </script>
 </body>
